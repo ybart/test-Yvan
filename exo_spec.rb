@@ -1,5 +1,5 @@
 require 'rspec/given'
-require 'gilded_rose'
+require 'exo'
 
 describe "#update_quality" do
 
