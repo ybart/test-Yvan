@@ -1,21 +1,32 @@
 def bs_quality_appreciation(item)
+  return -item.quality if item.sell_in <= 0
   return 3 if item.sell_in <= 5
   return 2 if item.sell_in <= 10
-  return -item.quality if item.sell_in < 0
   return 1
 end
 
-def quality_appreciation(item)
-  return 0 if item.name == 'Sulfuras' || item.quality >= 50
+def base_quality_appreciation(item)
+  return bs_quality_appreciation(item) if item.name == 'Backstage passes to a TAFKAL80ETC concert'
+  return 2 if item.name == 'Aged Brie' && item.sell_in <= 0
   return 1 if item.name == 'Aged Brie'
   return -2 if item.sell_in <= 0
-  return bs_quality_appreciation(item) if item.name == 'Backstage passes to a TAFKAL80ETC concert'
-  -1
+
+  item.quality.zero? ? 0 : -1
+end
+
+def quality_appreciation(item)
+  amount = base_quality_appreciation(item)
+  amount *= 2 if item.name == 'Conjured Mana Cake' && amount < 0
+
+  amount
 end
 
 def update_quality(items)
   items.each do |item|
-    item.quality += quality_appreciation(item)
+    next if item.name == 'Sulfuras, Hand of Ragnaros'
+
+    quality_amount = item.quality + quality_appreciation(item)
+    item.quality = [[quality_amount, 0].max, 50].min
     item.sell_in -= 1
   end
 end
