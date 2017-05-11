@@ -1,33 +1,85 @@
-def bs_quality_appreciation(item)
-  return -item.quality if item.sell_in <= 0
-  return 3 if item.sell_in <= 5
-  return 2 if item.sell_in <= 10
-  return 1
+class ItemUpdater
+  attr_accessor :item
+
+  def initialize(item)
+    @item = item
+  end
+
+  def days(number_of_days)
+    number_of_days
+  end
+
+  def update_item
+    update_quality
+    advance_one_day
+  end
+
+  def update_quality
+    decrease_quality
+    normalize_quality
+  end
+
+  def advance_one_day
+    item.sell_in -= days(1)
+  end
+
+  def decrease_quality
+    item.quality -= quality_decrease_amount
+  end
+
+  def quality_decrease_amount
+    item.sell_in > days(0) ? 1 : 2
+  end
+
+  def normalize_quality
+    item.quality = [[item.quality, 0].max, 50].min
+  end
 end
 
-def base_quality_appreciation(item)
-  return bs_quality_appreciation(item) if item.name == 'Backstage passes to a TAFKAL80ETC concert'
-  return 2 if item.name == 'Aged Brie' && item.sell_in <= 0
-  return 1 if item.name == 'Aged Brie'
-  return -2 if item.sell_in <= 0
-
-  item.quality.zero? ? 0 : -1
+class LegendaryItemUpdater < ItemUpdater
+  def update_item
+  end
 end
 
-def quality_appreciation(item)
-  amount = base_quality_appreciation(item)
-  amount *= 2 if item.name == 'Conjured Mana Cake' && amount < 0
+class ConjuredItemUpdater < ItemUpdater
+  def quality_decrease_amount
+    2 * super
+  end
+end
 
-  amount
+class BackstagePassUpdater < ItemUpdater
+  def quality_decrease_amount
+    return item.quality if item.sell_in <= days(0)
+    return -3 if item.sell_in <= days(5)
+    return -2 if item.sell_in <= days(10)
+    -1
+  end
+end
+
+class CheeseUpdater < ItemUpdater
+  def quality_decrease_amount
+    item.sell_in > days(0) ? -1 : -2
+  end
+end
+
+class ItemUpdaterFactory
+  ITEM_CLASSES = {
+    'Sulfuras, Hand of Ragnaros' => LegendaryItemUpdater,
+    'Conjured Mana Cake' => ConjuredItemUpdater,
+    'Aged Brie' => CheeseUpdater,
+    'Backstage passes to a TAFKAL80ETC concert' => BackstagePassUpdater,
+  }.freeze
+
+  def self.updater_for_item(item)
+    klass = ITEM_CLASSES[item.name] || ItemUpdater
+    klass.new(item)
+  end
 end
 
 def update_quality(items)
   items.each do |item|
-    next if item.name == 'Sulfuras, Hand of Ragnaros'
-
-    quality_amount = item.quality + quality_appreciation(item)
-    item.quality = [[quality_amount, 0].max, 50].min
-    item.sell_in -= 1
+    updater = ItemUpdaterFactory.updater_for_item(item)
+    updater.update_item
   end
 end
 
